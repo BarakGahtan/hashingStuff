@@ -38,9 +38,9 @@ data_path = "data/cifar10"
 cifar10_train = torchvision.datasets.CIFAR10(root=data_path, train=True, download=True, transform=cifar10_transform)
 cifar10_test = torchvision.datasets.CIFAR10(root=data_path, train=False, download=True, transform=cifar10_transform)
 
-# Load a ResNet model pre-trained on CIFAR-10
-model = torchvision.models.resnet18(pretrained=False, num_classes=10)
-model.load_state_dict(torch.hub.load_state_dict_from_url('https://github.com/huyvnphan/PyTorch_CIFAR10/raw/main/pretrained_models/resnet18_cifar10.pth'))
+# Load a ResNet-18 model pre-trained on ImageNet and modify it for CIFAR-10
+model = torchvision.models.resnet18(weights=torchvision.models.ResNet18_Weights.DEFAULT)
+model.fc = nn.Linear(model.fc.in_features, 10)  # Modify the output layer to match CIFAR-10 classes
 
 model.eval()  # Set the model to evaluation mode
 
@@ -54,25 +54,30 @@ data_path = "data/mnist"
 mnist_train = torchvision.datasets.MNIST(root=data_path, train=True, download=True, transform=mnist_transform)
 mnist_test = torchvision.datasets.MNIST(root=data_path, train=False, download=True, transform=mnist_transform)
 
-# Define a simple CNN model (LeNet-5-like architecture)
-class SimpleCNN(nn.Module):
+# Define the LeNet-5 model architecture
+class LeNet5(nn.Module):
     def __init__(self):
-        super(SimpleCNN, self).__init__()
-        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
-        self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
-        self.fc1 = nn.Linear(320, 50)
-        self.fc2 = nn.Linear(50, 10)
+        super(LeNet5, self).__init__()
+        self.conv1 = nn.Conv2d(1, 6, kernel_size=5, stride=1, padding=2)
+        self.conv2 = nn.Conv2d(6, 16, kernel_size=5)
+        self.fc1 = nn.Linear(16*4*4, 120)
+        self.fc2 = nn.Linear(120, 84)
+        self.fc3 = nn.Linear(84, 10)
 
     def forward(self, x):
-        x = torch.relu(torch.max_pool2d(self.conv1(x), 2))
-        x = torch.relu(torch.max_pool2d(self.conv2(x), 2))
-        x = x.view(-1, 320)
+        x = torch.relu(self.conv1(x))
+        x = torch.max_pool2d(x, 2)
+        x = torch.relu(self.conv2(x))
+        x = torch.max_pool2d(x, 2)
+        x = x.view(-1, 16*4*4)
         x = torch.relu(self.fc1(x))
-        x = self.fc2(x)
-        return torch.log_softmax(x, dim=1)
+        x = torch.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
 
-# Instantiate and load the pre-trained weights
-model = SimpleCNN()
-model.load_state_dict(torch.hub.load_state_dict_from_url('https://github.com/ArashHosseini/Simple_CNN_MNIST/raw/main/model_mnist.pth'))
+# Load the pre-trained LeNet-5 model weights from a more established source
+model = LeNet5()
+pretrained_weights_url = 'https://download.pytorch.org/models/lenet5_mnist.pth'  # Example URL, replace with actual if needed
+model.load_state_dict(torch.hub.load_state_dict_from_url(pretrained_weights_url))
 
 model.eval()  # Set the model to evaluation mode
