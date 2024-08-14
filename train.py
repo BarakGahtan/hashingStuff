@@ -187,7 +187,7 @@ class Train:
 
             num_examples_per_epoch_for_train = len(items_train)
             lmdb_file = './data/mirf' if cfg.dataset == 'mirflickr' else None
-            bp = batch_provider.BatchProvider(cfg.batch_size, items_train, cycled=True, imagenet=cfg.dataset == "imagenet",lmdb_file=lmdb_file)
+            bp = batch_provixder.BatchProvider(cfg.batch_size, items_train, cycled=True, imagenet=cfg.dataset == "imagenet",lmdb_file=lmdb_file)
 
             num_batches_per_epoch = num_examples_per_epoch_for_train / cfg.batch_size
             decay_steps = int(num_batches_per_epoch * cfg.number_of_epochs_per_decay)

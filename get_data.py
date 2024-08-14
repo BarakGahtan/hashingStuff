@@ -1,34 +1,78 @@
-# Copyright 2017 Stanislav Pidhorskyi
-# 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-# 
-#  http://www.apache.org/licenses/LICENSE-2.0
-# 
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# ==============================================================================
-"""Download all needed data to start training the network"""
-
 import os
-from utils.download import download
 
+import torch
+import torchvision
+import torchvision.transforms as transforms
+from torch import nn
+
+# Define the data directory
 data_path = "data/"
 
-download(directory=data_path, url="https://www.cs.toronto.edu/~kriz/cifar-10-binary.tar.gz", extract_targz=True)
-download(directory=data_path, google_drive_fileid="0B3kP5zWXwFm_OUpQbDFqY2dXNGs", file_name="imagenet-vgg-f_old.mat")
-#download(directory=data_path, url="http://www.vlfeat.org/matconvnet/models/imagenet-vgg-f.mat")
-nus_wide = os.path.join(data_path, "nus_wide")
-download(directory=nus_wide, google_drive_fileid="1lWdToNNKvhysXnNX5pv8yqmazB8kH6wB", extract_zip=True)
-imagenet = os.path.join(data_path, "imagenet")
-download(directory=imagenet, google_drive_fileid="1dnUCeX87e7BvIed2dg3XEpzTPlYX6JPi", extract_zip=True)
+# Download and load the MNIST dataset
+mnist_transform = transforms.Compose([transforms.ToTensor()])
 
-mnist = os.path.join(data_path, "mnist")
-download(directory=mnist, url="http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz", extract_gz=True)
-download(directory=mnist, url="http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz", extract_gz=True)
-download(directory=mnist, url="http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz", extract_gz=True)
-download(directory=mnist, url="http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz", extract_gz=True)
+mnist_train = torchvision.datasets.MNIST(root=os.path.join(data_path, "mnist"), train=True, download=True, transform=mnist_transform)
+mnist_test = torchvision.datasets.MNIST(root=os.path.join(data_path, "mnist"), train=False, download=True, transform=mnist_transform)
+
+# Download and load the CIFAR-10 dataset
+cifar10_transform = transforms.Compose([transforms.ToTensor()])
+
+cifar10_train = torchvision.datasets.CIFAR10(root=os.path.join(data_path, "cifar10"), train=True, download=True, transform=cifar10_transform)
+cifar10_test = torchvision.datasets.CIFAR10(root=os.path.join(data_path, "cifar10"), train=False, download=True, transform=cifar10_transform)
+
+# Example: Accessing a single image and label
+mnist_image, mnist_label = mnist_train[0]
+cifar10_image, cifar10_label = cifar10_train[0]
+
+print(f"MNIST image shape: {mnist_image.shape}, label: {mnist_label}")
+print(f"CIFAR-10 image shape: {cifar10_image.shape}, label: {cifar10_label}")
+
+# Define the transform for CIFAR-10
+cifar10_transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+])
+
+# Load the CIFAR-10 dataset
+data_path = "data/cifar10"
+cifar10_train = torchvision.datasets.CIFAR10(root=data_path, train=True, download=True, transform=cifar10_transform)
+cifar10_test = torchvision.datasets.CIFAR10(root=data_path, train=False, download=True, transform=cifar10_transform)
+
+# Load a ResNet model pre-trained on CIFAR-10
+model = torchvision.models.resnet18(pretrained=False, num_classes=10)
+model.load_state_dict(torch.hub.load_state_dict_from_url('https://github.com/huyvnphan/PyTorch_CIFAR10/raw/main/pretrained_models/resnet18_cifar10.pth'))
+
+model.eval()  # Set the model to evaluation mode
+
+# Load MNIST data
+mnist_transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize((0.1307,), (0.3081,)),
+])
+
+data_path = "data/mnist"
+mnist_train = torchvision.datasets.MNIST(root=data_path, train=True, download=True, transform=mnist_transform)
+mnist_test = torchvision.datasets.MNIST(root=data_path, train=False, download=True, transform=mnist_transform)
+
+# Define a simple CNN model (LeNet-5-like architecture)
+class SimpleCNN(nn.Module):
+    def __init__(self):
+        super(SimpleCNN, self).__init__()
+        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
+        self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
+        self.fc1 = nn.Linear(320, 50)
+        self.fc2 = nn.Linear(50, 10)
+
+    def forward(self, x):
+        x = torch.relu(torch.max_pool2d(self.conv1(x), 2))
+        x = torch.relu(torch.max_pool2d(self.conv2(x), 2))
+        x = x.view(-1, 320)
+        x = torch.relu(self.fc1(x))
+        x = self.fc2(x)
+        return torch.log_softmax(x, dim=1)
+
+# Instantiate and load the pre-trained weights
+model = SimpleCNN()
+model.load_state_dict(torch.hub.load_state_dict_from_url('https://github.com/ArashHosseini/Simple_CNN_MNIST/raw/main/model_mnist.pth'))
+
+model.eval()  # Set the model to evaluation mode
