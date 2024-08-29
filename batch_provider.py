@@ -1,19 +1,6 @@
-# Copyright 2017 Stanislav Pidhorskyi
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#  http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# ==============================================================================
 """Batch provider. Returns iterator to batches"""
 
+from PIL import Image
 from random import shuffle
 import matplotlib.pyplot as plt
 from scipy import misc
@@ -128,39 +115,39 @@ class BatchProvider:
             if not self.using_lmdb and len(item[1].shape) == 1:
                 image = item[1]
             elif not self.using_lmdb:
-                image = misc.imresize(item[1], self.image_size, interp='bilinear')
+                image = Image.fromarray(item[1])
+                image = image.resize(self.image_size, Image.BILINEAR)
 
                 # Similar to DVSQ https://github.com/caoyue10/cvpr17-dvsq/blob/master/net.py#L122
                 if self.cycled:
                     if random.random() > 0.5:
-                        image = np.fliplr(image)
+                        image = image.transpose(Image.FLIP_LEFT_RIGHT)
+                image = np.array(image)
             else:
                 with self.env.begin() as txn:
-
                     buf = txn.get(item[1].encode('ascii'))
                     if buf is None:
                         print(item[1].encode('ascii'))
                     buffer.seek(0)
                     buffer.write(buf)
                     buffer.seek(0)
-                    image = misc.imread(buffer, mode='RGB')
-                    #misc.imsave(str(i) + "_" + str(item[0])+ "test.jpg", image)
+                    image = Image.open(buffer).convert('RGB')
 
-                # Similar to DVSQ https://github.com/caoyue10/cvpr17-dvsq/blob/master/net.py#L122
-                startx = image.shape[1] - self.image_size[0]
-                starty = image.shape[0] - self.image_size[1]
+                startx = image.size[0] - self.image_size[0]
+                starty = image.size[1] - self.image_size[1]
                 if self.cycled:
                     startx = random.randint(0, startx)
                     starty = random.randint(0, starty)
                 else:
                     startx = startx // 2
                     starty = starty // 2
-                image = image[starty:starty + self.image_size[1], startx:startx + self.image_size[0]]
+                image = image.crop((startx, starty, startx + self.image_size[0], starty + self.image_size[1]))
 
                 # Similar to DVSQ https://github.com/caoyue10/cvpr17-dvsq/blob/master/net.py#L122
                 if self.cycled:
                     if random.random() > 0.5:
-                        image = np.fliplr(image)
+                        image = image.transpose(Image.FLIP_LEFT_RIGHT)
+                image = np.array(image)
 
             b_images.append(image)
             b_labels.append([item[0]])

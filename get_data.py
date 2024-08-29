@@ -50,34 +50,3 @@ mnist_transform = transforms.Compose([
     transforms.Normalize((0.1307,), (0.3081,)),
 ])
 
-data_path = "data/mnist"
-mnist_train = torchvision.datasets.MNIST(root=data_path, train=True, download=True, transform=mnist_transform)
-mnist_test = torchvision.datasets.MNIST(root=data_path, train=False, download=True, transform=mnist_transform)
-
-# Define the LeNet-5 model architecture
-class LeNet5(nn.Module):
-    def __init__(self):
-        super(LeNet5, self).__init__()
-        self.conv1 = nn.Conv2d(1, 6, kernel_size=5, stride=1, padding=2)
-        self.conv2 = nn.Conv2d(6, 16, kernel_size=5)
-        self.fc1 = nn.Linear(16*4*4, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 10)
-
-    def forward(self, x):
-        x = torch.relu(self.conv1(x))
-        x = torch.max_pool2d(x, 2)
-        x = torch.relu(self.conv2(x))
-        x = torch.max_pool2d(x, 2)
-        x = x.view(-1, 16*4*4)
-        x = torch.relu(self.fc1(x))
-        x = torch.relu(self.fc2(x))
-        x = self.fc3(x)
-        return x
-
-# Load the pre-trained LeNet-5 model weights from a more established source
-model = LeNet5()
-pretrained_weights_url = 'https://download.pytorch.org/models/lenet5_mnist.pth'  # Example URL, replace with actual if needed
-model.load_state_dict(torch.hub.load_state_dict_from_url(pretrained_weights_url))
-
-model.eval()  # Set the model to evaluation mode
