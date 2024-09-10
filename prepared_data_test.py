@@ -21,9 +21,9 @@ import matplotlib.pyplot as plt
 
 def main():
     """Load a batch of 10 items from test and train pickled data and display it"""
-    with open('temp/items_train.pkl', 'rb') as pkl:
+    with open('temp/items_train_cifar_reduced.pkl', 'rb') as pkl:
         items_train = pickle.load(pkl)
-    with open('temp/items_test.pkl', 'rb') as pkl:
+    with open('temp/items_test_cifar_reduced.pkl', 'rb') as pkl:
         items_test = pickle.load(pkl)
 
     bp_train = batch_provider.BatchProvider(40, items_train, cycled=True)
@@ -36,7 +36,7 @@ def main():
     for im in b["images"]:
         plt.imshow(im, interpolation='nearest')
         plt.show()
-
+        plt.close()
     it = bp_test.get_batches()
     b = next(it)
     for l in b["labels"]:
@@ -44,6 +44,6 @@ def main():
     for im in b["images"]:
         plt.imshow(im, interpolation='nearest')
         plt.show()
-
+        plt.close()
 if __name__ == '__main__':
     main()
