@@ -161,11 +161,11 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     from utils.cifar10_reader import Reader
 
-    #r = Reader('data/cifar-10-batches-bin')
+    r = Reader('data/cifar10/cifar-10-batches-bin')
 
-    #p = BatchProvider(20, r.items)
-    with open('temp/items_train_nuswide_5000.10000.pkl', 'rb') as pkl:
-        p = BatchProvider(20, pickle.load(pkl))
+    p = BatchProvider(20, r.items)
+    # with open('temp/items_train_nuswide_5000.10000.pkl', 'rb') as pkl:
+    #     p = BatchProvider(20, pickle.load(pkl))
 
     b = p.get_batches()
 
