@@ -1,59 +1,68 @@
-# Copyright 2017 Stanislav Pidhorskyi
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#  http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# ==============================================================================
+import os
+import torch
+from torchvision import transforms
+from PIL import Image
+import urllib.request
+import matconvnet2tf_torch
 
-from matconvnet2tf import MatConvNet2TF
-from utils.download import download
-import numpy as np
-import scipy.ndimage
-import tensorflow as tf
 
+def download(url, filename):
+    if not os.path.exists(filename):
+        print(f"Downloading {url} to {filename}...")
+        urllib.request.urlretrieve(url, filename)
+        print("Download complete.")
 
 def main():
-    """Test MatConvNet2TF"""
+    """Test MatConvNet2PyTorch"""
+    # Download the model file if it doesn't exist
+    model_url = "http://www.vlfeat.org/matconvnet/models/imagenet-vgg-f.mat"
+    model_filename = 'imagenet-vgg-f.mat'
+    download(model_url, model_filename)
 
-    download(url="http://www.vlfeat.org/matconvnet/models/imagenet-vgg-f.mat")
-    download(url="http://www.vlfeat.org/matconvnet/models/imagenet-vgg-s.mat")
-    download(url="http://www.vlfeat.org/matconvnet/models/imagenet-vgg-m.mat")
-    download(url="http://www.vlfeat.org/matconvnet/models/imagenet-vgg-m-128.mat")
-    download(url="http://www.vlfeat.org/matconvnet/models/imagenet-vgg-m-1024.mat")
-    download(url="http://www.vlfeat.org/matconvnet/models/imagenet-vgg-m-2048.mat")
-    download(url="http://www.vlfeat.org/matconvnet/models/imagenet-vgg-verydeep-16.mat")
-    download(url="http://www.vlfeat.org/matconvnet/models/imagenet-vgg-verydeep-19.mat")
+    # Specify the image file
+    image_path = 'image.jpg'
+    if not os.path.exists(image_path):
+        print(f"Image file '{image_path}' not found.")
+        return
 
-    models = [
-        'imagenet-vgg-f.mat'
-        ,'imagenet-vgg-s.mat'
-        ,'imagenet-vgg-m.mat'
-        ,'imagenet-vgg-m-128.mat'
-        ,'imagenet-vgg-m-1024.mat'
-        ,'imagenet-vgg-m-2048.mat'
-        ,'imagenet-vgg-verydeep-16.mat'
-        ,'imagenet-vgg-verydeep-19.mat'
-        ]
+    # Load and preprocess the image
+    image = Image.open(image_path).convert('RGB')
 
-    image = np.array(scipy.ndimage.imread('image.jpg'), ndmin=4)
+    # Initialize the model
+    print(f"Model: {model_filename}")
+    model = matconvnet2tf_torch.MatConvNet2PyTorch(model_filename, do_debug_print=True)
+    model.eval()
 
-    for m in models:
-        print("Model: " + m)
-        with tf.Graph().as_default(), tf.Session() as session:
-            model = MatConvNet2TF(m, do_debug_print=True)
-            session.run(tf.global_variables_initializer())
-            result = model.net['prob'].eval(feed_dict={model.input: image}).reshape(-1)
-            indices = np.flip(result.argsort(), 0)[:10]
-            for i in indices:
-                print(str(result[i] * 100.0) + "% " + model.net['classes'][i])
+    # Get input size from the model's mean image
+    input_size = model.mean.shape[2:]  # (H, W)
+    print(f"Expected input size: {input_size}")
 
-if __name__ == '__main__':
+    # Define image transformations
+    transform = transforms.Compose([
+        transforms.Resize(input_size),
+        transforms.ToTensor()
+    ])
+
+    # Apply transformations to the image
+    image_tensor = transform(image)  # Shape: [C, H, W]
+    image_tensor = image_tensor.unsqueeze(0)  # Add batch dimension: [1, C, H, W]
+
+    # Run the model on the image
+    with torch.no_grad():
+        output = model(image_tensor)
+
+    # Get the result and reshape to 1D
+    result = output.view(-1)
+
+    # Get top 10 indices by sorting the results
+    _, indices = torch.sort(result, descending=True)
+    top_indices = indices[:10]
+
+    # Display the top-10 classification results
+    for i in top_indices:
+        prob = result[i].item() * 100.0
+        class_name = model.net['classes'][i]
+        print(f"{prob:.2f}% - {class_name}")
+
+if __name__ == "__main__":
     main()

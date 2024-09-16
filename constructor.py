@@ -1,34 +1,37 @@
-# Copyright 2017 Stanislav Pidhorskyi
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#  http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# ==============================================================================
-"""Net constructors"""
+from torch import nn
 
-import tensorflow as tf
+import matconvnet2tf_torch
 from matconvnet2tf import MatConvNet2TF
 import numpy as np
 
 def net(batch_size, hash_size, expected_triplet_count=100, margin=0, weight_decay_factor=0, loss_func=None):
-    t_images = tf.placeholder(tf.float32, [None, 224, 224, 3])
-    t_latent = tf.placeholder(tf.float32, [None, 9216])
-    t_labels = tf.placeholder(tf.int32, [None, 1])
-    t_boolmask = tf.placeholder(tf.bool, [batch_size, batch_size])
-    t_indices_q = tf.placeholder(tf.int32, [expected_triplet_count])
-    t_indices_p = tf.placeholder(tf.int32, [expected_triplet_count])
-    t_indices_n = tf.placeholder(tf.int32, [expected_triplet_count])
+    # Define the neural network model
+    class Net(nn.Module):
+        def __init__(self, hash_size):
+            super(Net, self).__init__()
+            # Example: Simple fully connected layer
+            # Adjust the architecture as needed
+            self.fc = nn.Linear(9216, hash_size)
+            # Optional: Initialize weights or add more layers
+
+        def forward(self, t_latent):
+            # t_latent: Tensor of shape [batch_size, 9216]
+            output = self.fc(t_latent)
+            return output
+
+    # Instantiate the model
+    model = Net(hash_size)
+
+    # Define the loss function
+    if loss_func is None:
+        # Using Triplet Margin Loss as an example
+        loss_func = nn.TripletMarginLoss(margin=margin, p=2)
+
+    # Return the model and loss function
+    return model, loss_func
 
     if True:
-        model = MatConvNet2TF("data/imagenet-vgg-f_old.mat", input=t_images, ignore=['fc8', 'prob'], do_debug_print=True, input_latent=t_latent, latent_layer="fc6")
+        model = matconvnet2tf_torch.MatConvNet2PyTorch("data/imagenet-vgg-f_old.mat", input=t_images, ignore=['fc8', 'prob'], do_debug_print=True, input_latent=t_latent, latent_layer="fc6")
     else:
         class Model:
             def __init__(self, input=None):
