@@ -1,4 +1,5 @@
-import numpy as np
+import numpy as npimport tensorflow as tf
+
 import pickle
 from mean_average_precision import compute_map
 from mean_average_precision import compute_map_fast

@@ -1,3 +1,4 @@
+import torch
 from torch import nn
 
 import matconvnet2tf_torch
@@ -5,6 +6,21 @@ from matconvnet2tf import MatConvNet2TF
 import numpy as np
 
 def net(batch_size, hash_size, expected_triplet_count=100, margin=0, weight_decay_factor=0, loss_func=None):
+    # Placeholder for images
+    t_images = torch.empty((batch_size, 224, 224, 3), dtype=torch.float32)  # You may replace None with specific batch size
+    # Placeholder for latent vectors
+    t_latent = torch.empty((batch_size, 9216), dtype=torch.float32)  # You may replace None with specific batch size
+    # Placeholder for labels
+    t_labels = torch.empty((batch_size, 1), dtype=torch.int32)  # For integer labels
+    # Placeholder for boolean mask
+    batch_size = 32  # Example batch size; change as needed
+    t_boolmask = torch.empty((batch_size, batch_size), dtype=torch.bool)
+    # Placeholder for indices
+    expected_triplet_count = 100  # Example size; change as needed
+    t_indices_q = torch.empty((expected_triplet_count,), dtype=torch.int32)
+    t_indices_p = torch.empty((expected_triplet_count,), dtype=torch.int32)
+    t_indices_n = torch.empty((expected_triplet_count,), dtype=torch.int32)
+
     # Define the neural network model
     class Net(nn.Module):
         def __init__(self, hash_size):
@@ -20,7 +36,7 @@ def net(batch_size, hash_size, expected_triplet_count=100, margin=0, weight_deca
             return output
 
     # Instantiate the model
-    model = matconvnet2tf_torch.MatConvNet2PyTorch("data/imagenet-vgg-f_old.mat", input=t_images, ignore=['fc8', 'prob'], do_debug_print=True, input_latent=t_latent, latent_layer="fc6")
+    model = matconvnet2tf_torch.MatConvNet2PyTorch("data/imagenet-matconvnet-vgg-f.mat", ignore=['fc8', 'prob'], do_debug_print=True)
     if loss_func is None:
 
         loss_func = nn.TripletMarginLoss(margin=margin, p=2) # Using Triplet Margin Loss as an example

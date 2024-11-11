@@ -17,7 +17,6 @@
 
 import numpy as np
 import scipy.io
-import tensorflow as tf
 
 
 class MatConvNet2TF:

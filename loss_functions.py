@@ -15,7 +15,6 @@
 """Collection of loss-functions"""
 
 import numpy as np
-import tensorflow as tf
 import math
 
 def __get_triplets(batch_size, ids, boolean_mask):

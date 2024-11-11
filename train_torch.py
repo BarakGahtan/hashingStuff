@@ -13,13 +13,13 @@ import torch.optim as optim
 import batch_provider
 import constructor
 import loss_functions
-from evaluate_performance import evaluate
-from gen_hashes import gen_hashes
-from mean_average_precision import compute_map
-from mean_average_precision import compute_map_fast
-from utils.random_rotation import random_rotation
-from random import random
-import threading
+# from evaluate_performance import evaluate
+# from gen_hashes import gen_hashes
+# from mean_average_precision import compute_map
+# from mean_average_precision import compute_map_fast
+# from utils.random_rotation import random_rotation
+# from random import random
+# import threading
 
 
 def GetBaseRotation(alpha, size):
@@ -31,7 +31,7 @@ def GetBaseRotation(alpha, size):
     return I.astype(np.float32)
 
 
-class Train:
+class TrainTorch:
     def __init__(self):
         self.directory = None
         self.l_db = None
@@ -142,7 +142,7 @@ class Train:
         assert(len(items_test) % 100 == 0)
 
         num_examples_per_epoch_for_train = len(items_train)
-        bp = batch_provider.BatchProvider(cfg.batch_size, items_train, cycled=True, imagenet=cfg.dataset == "imagenet",lmdb_file=None)
+        bp = batch_provider.BatchProvider(cfg.batch_size, items_train, cycled=True,lmdb_file=None)
 
         num_batches_per_epoch = num_examples_per_epoch_for_train / cfg.batch_size
         decay_steps = int(num_batches_per_epoch * cfg.number_of_epochs_per_decay)
