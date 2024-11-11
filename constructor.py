@@ -1,81 +1,43 @@
+import scipy
 import torch
 from torch import nn
-
-import matconvnet2tf_torch
-from matconvnet2tf import MatConvNet2TF
 import numpy as np
+from matconvnet2tf_torch import MatConvNet2PyTorch  # Assuming this is your module for converting MatConvNet to PyTorch
+from matconvnet2tf_torch_hadas import VGGF, load_weights  # Assuming this is your module for converting MatConvNet to PyTorch
 
-def net(batch_size, hash_size, expected_triplet_count=100, margin=0, weight_decay_factor=0, loss_func=None):
-    # Placeholder for images
-    t_images = torch.empty((batch_size, 224, 224, 3), dtype=torch.float32)  # You may replace None with specific batch size
-    # Placeholder for latent vectors
-    t_latent = torch.empty((batch_size, 9216), dtype=torch.float32)  # You may replace None with specific batch size
-    # Placeholder for labels
-    t_labels = torch.empty((batch_size, 1), dtype=torch.int32)  # For integer labels
-    # Placeholder for boolean mask
-    batch_size = 32  # Example batch size; change as needed
-    t_boolmask = torch.empty((batch_size, batch_size), dtype=torch.bool)
-    # Placeholder for indices
-    expected_triplet_count = 100  # Example size; change as needed
-    t_indices_q = torch.empty((expected_triplet_count,), dtype=torch.int32)
-    t_indices_p = torch.empty((expected_triplet_count,), dtype=torch.int32)
-    t_indices_n = torch.empty((expected_triplet_count,), dtype=torch.int32)
-
-    # Define the neural network model
+def net(batch_size, hash_size, margin=0, weight_decay_factor=0, loss_func=None):
+    # Define a simple example model (customize as needed)
     class Net(nn.Module):
-        def __init__(self, hash_size):
+        def __init__(self, input_size, hash_size):
             super(Net, self).__init__()
-            # Example: Simple fully connected layer
-            # Adjust the architecture as needed
-            self.fc = nn.Linear(9216, hash_size)
-            # Optional: Initialize weights or add more layers
+            self.fc = nn.Linear(input_size, hash_size)  # Example fully connected layer
 
-        def forward(self, t_latent):
-            # t_latent: Tensor of shape [batch_size, 9216]
-            output = self.fc(t_latent)
-            return output
+        def forward(self, x):
+            return self.fc(x)
 
-    # Instantiate the model
-    model = matconvnet2tf_torch.MatConvNet2PyTorch("data/imagenet-matconvnet-vgg-f.mat", ignore=['fc8', 'prob'], do_debug_print=True)
+    # Load and process the model using your MatConvNet to PyTorch converter
+    model = VGGF("data/imagenet-matconvnet-vgg-f.mat", ignore=['fc8', 'prob'], do_debug_print=True)
+    data = scipy.io.loadmat('vgg-f.mat')
+    load_weights(model, data)
+
+    # Example integration of a custom layer or modification
+    model.custom_layer = Net(input_size=9216, hash_size=hash_size)
+
+    # Define the loss function if not provided
     if loss_func is None:
+        loss_func = nn.TripletMarginLoss(margin=margin, p=2)
 
-        loss_func = nn.TripletMarginLoss(margin=margin, p=2) # Using Triplet Margin Loss as an example
+    # Example placeholders for inputs (adjust as needed)
+    model.t_images = torch.randn(batch_size, 224, 224, 3, dtype=torch.float32)  # Example tensor
+    model.t_latent = torch.randn(batch_size, 9216, dtype=torch.float32)
+    model.t_labels = torch.randint(0, 10, (batch_size, 1), dtype=torch.int32)
+    model.t_boolmask = torch.rand(batch_size, batch_size) > 0.5  # Random boolean mask example
+    model.t_indices_q = torch.randint(0, batch_size, (batch_size,), dtype=torch.int32)
+    model.t_indices_p = torch.randint(0, batch_size, (batch_size,), dtype=torch.int32)
+    model.t_indices_n = torch.randint(0, batch_size, (batch_size,), dtype=torch.int32)
 
-    model.t_images = t_images
-    model.t_latent = t_latent
-    model.t_labels = t_labels
-    model.t_boolmask = t_boolmask
-    model.t_indices_q = t_indices_q
-    model.t_indices_p = t_indices_p
-    model.t_indices_n = t_indices_n
-
-    fcw = tf.get_variable(name='fc8_custom/weights', shape=[4096, hash_size],
-                          initializer=tf.truncated_normal_initializer(stddev=0.01, dtype=tf.float32),
-                          dtype=tf.float32)
-
-    fcb = tf.get_variable(name='fc8_custom/biases', shape=[hash_size],
-                          initializer=tf.truncated_normal_initializer(stddev=0.01, dtype=tf.float32),
-                          dtype=tf.float32)
-
-    model.weight_decay_losses.append(tf.abs(tf.reduce_mean(tf.reduce_sum(tf.square(fcw), 0)) - 1.0))
-    weight_decay = tf.add_n(model.weight_decay_losses)
-    model.weight_decay = weight_decay * weight_decay_factor
-
-    fc8 = tf.nn.bias_add(tf.matmul(model.net['relu7'], fcw), fcb)
-    model.output = model.net['fc8_custom'] = fc8
-    model.output_norm = tf.nn.l2_normalize(model.output, 1)
-
-    fc8 = tf.nn.bias_add(tf.matmul(model.output2, fcw), fcb)
-    model.output_2 = model.net['fc8_custom_2'] = fc8
-
-    model.embedding_var = tf.Variable(tf.zeros((batch_size, hash_size), dtype=tf.float32),
-                                      trainable=False,
-                                      name='embedding',
-                                      dtype='float32')
-    model.assignment = tf.assign(model.embedding_var, model.output_norm)
-
-    if loss_func is not None:
-        model.loss, model.E = loss_func(model.output, t_indices_q, t_indices_p, t_indices_n, hash_size, batch_size, margin)
-        model.loss_2, model.E = loss_func(model.output_2, t_indices_q, t_indices_p, t_indices_n, hash_size, batch_size, margin)
+    # Example for weight decay (simplified approach)
+    weight_decay_loss = sum(torch.sum(p ** 2) for p in model.parameters()) * weight_decay_factor
+    model.weight_decay = weight_decay_loss
 
     return model
