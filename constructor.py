@@ -3,7 +3,7 @@ import torch
 from torch import nn
 import numpy as np
 from matconvnet2tf_torch import MatConvNet2PyTorch  # Assuming this is your module for converting MatConvNet to PyTorch
-from matconvnet2tf_torch_hadas import VGGF, load_weights  # Assuming this is your module for converting MatConvNet to PyTorch
+from matconvnet2tf_torch_hadas import VGGF, load_weights, load_matconvnet_weights  # Assuming this is your module for converting MatConvNet to PyTorch
 
 def net(batch_size, hash_size, margin=0, weight_decay_factor=0, loss_func=None):
     # Define a simple example model (customize as needed)
@@ -17,8 +17,7 @@ def net(batch_size, hash_size, margin=0, weight_decay_factor=0, loss_func=None):
 
     # Load and process the model using your MatConvNet to PyTorch converter
     model = VGGF() #"data/imagenet-matconvnet-vgg-f.mat"
-    data = scipy.io.loadmat('data/imagenet-matconvnet-vgg-f.mat')
-    load_weights(model, data)
+    load_matconvnet_weights(model)
 
     # Example integration of a custom layer or modification
     model.custom_layer = Net(input_size=9216, hash_size=hash_size)
