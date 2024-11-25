@@ -16,8 +16,8 @@ def net(batch_size, hash_size, margin=0, weight_decay_factor=0, loss_func=None):
             return self.fc(x)
 
     # Load and process the model using your MatConvNet to PyTorch converter
-    model = VGGF("data/imagenet-matconvnet-vgg-f.mat", ignore=['fc8', 'prob'], do_debug_print=True)
-    data = scipy.io.loadmat('vgg-f.mat')
+    model = VGGF() #"data/imagenet-matconvnet-vgg-f.mat"
+    data = scipy.io.loadmat('data/imagenet-matconvnet-vgg-f.mat')
     load_weights(model, data)
 
     # Example integration of a custom layer or modification
